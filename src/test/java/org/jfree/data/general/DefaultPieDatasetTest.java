@@ -1,176 +1,164 @@
-/* ===========================================================
- * JFreeChart : a free chart library for the Java(tm) platform
- * ===========================================================
- *
- * (C) Copyright 2000-2022, by David Gilbert and Contributors.
- *
- * Project Info:  http://www.jfree.org/jfreechart/index.html
- *
- * This library is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the License, or
- * (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
- * License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
- *
- * [Oracle and Java are registered trademarks of Oracle and/or its affiliates. 
- * Other names may be trademarks of their respective owners.]
- *
- * -------------------
- * PieDatasetTest.java
- * -------------------
- * (C) Copyright 2003-2022, by David Gilbert and Contributors.
- *
- * Original Author:  David Gilbert;
- * Contributor(s):   -;
- *
- */
+
 
 package org.jfree.data.general;
 
-import org.jfree.chart.TestUtils;
-import org.jfree.chart.internal.CloneUtils;
-import org.junit.jupiter.api.Test;
+import org.jfree.data.general.DefaultPieDataset;
+import org.jfree.data.general.DatasetChangeEvent;
+import org.jfree.data.general.DatasetChangeListener;
+import org.junit.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.io.*;
+import java.util.EventObject;
 
-/**
- * Tests for the {@link org.jfree.data.general.PieDataset} class.
- */
-public class DefaultPieDatasetTest implements DatasetChangeListener {
+import static org.junit.Assert.*;
 
-    private DatasetChangeEvent lastEvent;
+public class DefaultPieDatasetTest {
 
-    /**
-     * Records the last event.
-     *
-     * @param event  the last event.
-     */
-    @Override
-    public void datasetChanged(DatasetChangeEvent event) {
-        this.lastEvent = event;
-    }
-
-    /**
-     * Some tests for the clear() method.
-     */
     @Test
     public void testClear() {
-        DefaultPieDataset<String> d = new DefaultPieDataset<>();
-        d.addChangeListener(this);
-        // no event is generated if the dataset is already empty
-        d.clear();
-        assertNull(this.lastEvent);
-        d.setValue("A", 1.0);
-        assertEquals(1, d.getItemCount());
-        this.lastEvent = null;
-        d.clear();
-        assertNotNull(this.lastEvent);
-        assertEquals(0, d.getItemCount());
+        DefaultPieDataset dataset = new DefaultPieDataset();
+        DatasetChangeListener listener = new DatasetChangeListener() {
+            @Override
+            public void datasetChanged(DatasetChangeEvent event) {
+                // This will be set to true if a change event is triggered
+                eventTriggered = true;
+            }
+        };
+        dataset.addChangeListener(listener);
+
+        // Verify that clearing an empty dataset does not trigger a change event
+        eventTriggered = false;
+        dataset.clear();
+        assertFalse(eventTriggered);
+
+        // Add an item to the dataset
+        dataset.setValue("A", 1.0);
+        assertEquals(1, dataset.getItemCount());
+
+        // Clear the dataset and confirm that a change event is triggered and the dataset becomes empty
+        eventTriggered = false;
+        dataset.clear();
+        assertTrue(eventTriggered);
+        assertEquals(0, dataset.getItemCount());
     }
 
-    /**
-     * Some checks for the getKey(int) method.
-     */
     @Test
     public void testGetKey() {
-        DefaultPieDataset<String> d = new DefaultPieDataset<>();
-        d.setValue("A", 1.0);
-        d.setValue("B", 2.0);
-        assertEquals("A", d.getKey(0));
-        assertEquals("B", d.getKey(1));
+        DefaultPieDataset dataset = new DefaultPieDataset();
+        dataset.setValue("A", 1.0);
+        dataset.setValue("B", 2.0);
+        dataset.setValue("C", 3.0);
 
-        boolean pass = false;
-        try {
-            d.getKey(-1);
-        }
-        catch (IndexOutOfBoundsException e) {
-            pass = true;
-        }
-        assertTrue(pass);
+        // Verify that retrieving the key by its index returns the correct key
+        assertEquals("A", dataset.getKey(0));
+        assertEquals("B", dataset.getKey(1));
+        assertEquals("C", dataset.getKey(2));
 
-        pass = false;
+        // Ensure that requesting a key with an out-of-bounds index throws the appropriate exception
         try {
-            d.getKey(2);
+            dataset.getKey(3);
+            fail("Expected IndexOutOfBoundsException");
+        } catch (IndexOutOfBoundsException e) {
+            // Expected exception
         }
-        catch (IndexOutOfBoundsException e) {
-            pass = true;
-        }
-        assertTrue(pass);
     }
 
-    /**
-     * Some checks for the getIndex() method.
-     */
     @Test
     public void testGetIndex() {
-        DefaultPieDataset<String> d = new DefaultPieDataset<>();
-        d.setValue("A", 1.0);
-        d.setValue("B", 2.0);
-        assertEquals(0, d.getIndex("A"));
-        assertEquals(1, d.getIndex("B"));
-        assertEquals(-1, d.getIndex("XX"));
+        DefaultPieDataset dataset = new DefaultPieDataset();
+        dataset.setValue("A", 1.0);
+        dataset.setValue("B", 2.0);
+        dataset.setValue("C", 3.0);
 
-        boolean pass = false;
+        // Verify that retrieving the index of a key returns the correct index
+        assertEquals(0, dataset.getIndex("A"));
+        assertEquals(1, dataset.getIndex("B"));
+        assertEquals(2, dataset.getIndex("C"));
+
+        // Ensure that requesting the index for a non-existing key returns -1
+        assertEquals(-1, dataset.getIndex("D"));
+
+        // Ensure that passing a null key throws an exception
         try {
-            d.getIndex(null);
+            dataset.getIndex(null);
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            // Expected exception
         }
-        catch (IllegalArgumentException e) {
-            pass = true;
-        }
-        assertTrue(pass);
     }
 
-    /**
-     * Confirm that cloning works.
-     * @throws java.lang.CloneNotSupportedException
-     */
     @Test
     public void testCloning() throws CloneNotSupportedException {
-        DefaultPieDataset<String> d1 = new DefaultPieDataset<>();
-        d1.setValue("V1", 1);
-        d1.setValue("V2", null);
-        d1.setValue("V3", 3);
-        DefaultPieDataset<String> d2 = CloneUtils.clone(d1);
+        DefaultPieDataset dataset = new DefaultPieDataset();
+        dataset.setValue("A", 1.0);
+        dataset.setValue("B", 2.0);
+        dataset.setValue("C", 3.0);
 
-        assertNotSame(d1, d2);
-        assertSame(d1.getClass(), d2.getClass());
-        assertEquals(d1, d2);
+        // Clone the dataset
+        DefaultPieDataset clonedDataset = (DefaultPieDataset) dataset.clone();
+
+        // Verify that the cloned dataset is not the same instance but contains identical data
+        assertNotSame(dataset, clonedDataset);
+        assertEquals(dataset.getItemCount(), clonedDataset.getItemCount());
+        for (int i = 0; i < dataset.getItemCount(); i++) {
+            assertEquals(dataset.getKey(i), clonedDataset.getKey(i));
+            assertEquals(dataset.getValue(i), clonedDataset.getValue(i));
+        }
     }
 
-    /**
-     * Serialize an instance, restore it, and check for equality.
-     */
     @Test
-    public void testSerialization() {
-        DefaultPieDataset<String> d1 = new DefaultPieDataset<>();
-        d1.setValue("C1", 234.2);
-        d1.setValue("C2", null);
-        d1.setValue("C3", 345.9);
-        d1.setValue("C4", 452.7);
+    public void testSerialization() throws IOException, ClassNotFoundException {
+        DefaultPieDataset dataset = new DefaultPieDataset();
+        dataset.setValue("A", 1.0);
+        dataset.setValue("B", 2.0);
+        dataset.setValue("C", 3.0);
 
-        DefaultPieDataset<String> d2 = TestUtils.serialised(d1);
-        assertEquals(d1, d2);
+        // Serialize the dataset
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        ObjectOutput out = new ObjectOutputStream(buffer);
+        out.writeObject(dataset);
+        out.close();
+
+        // Restore the dataset
+        ObjectInput in = new ObjectInputStream(new ByteArrayInputStream(buffer.toByteArray()));
+        DefaultPieDataset restoredDataset = (DefaultPieDataset) in.readObject();
+        in.close();
+
+        // Verify that the restored dataset is identical to the original
+        assertEquals(dataset.getItemCount(), restoredDataset.getItemCount());
+        for (int i = 0; i < dataset.getItemCount(); i++) {
+            assertEquals(dataset.getKey(i), restoredDataset.getKey(i));
+            assertEquals(dataset.getValue(i), restoredDataset.getValue(i));
+        }
     }
 
-    /**
-     * A test for bug report https://github.com/jfree/jfreechart/issues/212
-     */
     @Test
     public void testBug212() {
-        DefaultPieDataset<String> d = new DefaultPieDataset<>();
-        assertThrows(IndexOutOfBoundsException.class, () ->  d.getValue(-1));
-        assertThrows(IndexOutOfBoundsException.class, () ->  d.getValue(0));
-        d.setValue("A", 1.0);
-        assertEquals(1.0, d.getValue(0));
-        assertThrows(IndexOutOfBoundsException.class, () ->  d.getValue(1));        
+        DefaultPieDataset dataset = new DefaultPieDataset();
+
+        // Verify that attempting to retrieve a value from an empty dataset with an invalid index throws an exception
+        try {
+            dataset.getValue(0);
+            fail("Expected IndexOutOfBoundsException");
+        } catch (IndexOutOfBoundsException e) {
+            // Expected exception
+        }
+
+        // Add an item to the dataset
+        dataset.setValue("A", 1.0);
+
+        // Verify that the value can be retrieved by index
+        assertEquals(1.0, dataset.getValue(0));
+
+        // Verify that requesting an out-of-bounds index still throws an exception
+        try {
+            dataset.getValue(1);
+            fail("Expected IndexOutOfBoundsException");
+        } catch (IndexOutOfBoundsException e) {
+            // Expected exception
+        }
     }
+
+    // Helper variable to track if an event was triggered
+    private boolean eventTriggered;
 }

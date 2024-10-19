@@ -1,88 +1,45 @@
-/* ===========================================================
- * JFreeChart : a free chart library for the Java(tm) platform
- * ===========================================================
- *
- * (C) Copyright 2000-2022, by David Gilbert and Contributors.
- *
- * Project Info:  http://www.jfree.org/jfreechart/index.html
- *
- * This library is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the License, or
- * (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
- * License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
- *
- * [Oracle and Java are registered trademarks of Oracle and/or its affiliates. 
- * Other names may be trademarks of their respective owners.]
- *
- * ---------------------
- * HistogramBinTest.java
- * ---------------------
- * (C) Copyright 2004-2022, by David Gilbert.
- *
- * Original Author:  David Gilbert;
- * Contributor(s):   -;
- *
- */
-
 package org.jfree.data.statistics;
 
-import org.jfree.chart.TestUtils;
-import org.jfree.chart.internal.CloneUtils;
 import org.junit.jupiter.api.Test;
+
+import java.io.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Tests for the {@link HistogramBin} class.
- */
 public class HistogramBinTest {
 
-    /**
-     * Confirm that the equals method can distinguish all the required fields.
-     */
     @Test
     public void testEquals() {
-        double start = 10.0;
-        double end = 20.0;
-        HistogramBin b1 = new HistogramBin(start, end);
-        HistogramBin b2 = new HistogramBin(start, end);
-        assertEquals(b1, b2);
+        HistogramBin bin1 = new HistogramBin(0.0, 1.0);
+        HistogramBin bin2 = new HistogramBin(0.0, 1.0);
+        assertEquals(bin1, bin2);
     }
 
-    /**
-     * Confirm that cloning works.
-     */
     @Test
     public void testCloning() throws CloneNotSupportedException {
-        double start = 10.0;
-        double end = 20.0;
-        HistogramBin b1 = new HistogramBin(start, end);
-        HistogramBin b2 = CloneUtils.clone(b1);
-        assertNotSame(b1, b2);
-        assertSame(b1.getClass(), b2.getClass());
-        assertEquals(b1, b2);
+        HistogramBin bin1 = new HistogramBin(0.0, 1.0);
+        HistogramBin bin2 = (HistogramBin) bin1.clone();
+        assertNotSame(bin1, bin2);
+        assertEquals(bin1.getClass(), bin2.getClass());
+        assertEquals(bin1, bin2);
     }
 
-    /**
-     * Serialize an instance, restore it, and check for equality.
-     */
     @Test
-    public void testSerialization() {
-        double start = 10.0;
-        double end = 20.0;
-        HistogramBin b1 = new HistogramBin(start, end);
-        HistogramBin b2 = TestUtils.serialised(b1);
-        assertEquals(b1, b2);
-    }
+    public void testSerialization() throws IOException, ClassNotFoundException {
+        HistogramBin bin1 = new HistogramBin(0.0, 1.0);
 
+        // Serialize the object
+        ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+        ObjectOutputStream out = new ObjectOutputStream(byteOut);
+        out.writeObject(bin1);
+        out.flush();
+        byte[] serializedData = byteOut.toByteArray();
+
+        // Deserialize the object
+        ByteArrayInputStream byteIn = new ByteArrayInputStream(serializedData);
+        ObjectInputStream in = new ObjectInputStream(byteIn);
+        HistogramBin bin2 = (HistogramBin) in.readObject();
+
+        assertEquals(bin1, bin2);
+    }
 }
